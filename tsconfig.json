@@ -1,10 +1,17 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "commonjs",
-    "outDir": "./app",
+    "module": "NodeNext",
+    "outDir": "app/",
+    "baseUrl": "./",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true
-  }
+  },
+  "include": [
+    "./src/**/*.mts",
+  ],
+  "exclude": [
+    "./src/**/*.test.mts"
+  ]
 }
