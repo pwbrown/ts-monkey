@@ -1,0 +1,23 @@
+{
+  "name": "ts-monkey",
+  "version": "1.0.0",
+  "description": "Monkey interpreter/compiler/vm",
+  "main": "app/main.js",
+  "type": "module",
+  "scripts": {
+    "clean": "rimraf app",
+    "build": "npm run clean && tsc",
+    "test": "jest"
+  },
+  "author": "Philip Brown",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@eslint/js": "^9.7.0",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^20.14.10",
+    "eslint": "^8.57.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^7.16.0"
+  }
+}
