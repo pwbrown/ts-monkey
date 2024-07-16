@@ -1,7 +1,7 @@
 import { createInterface } from 'node:readline/promises';
 import { inspect } from 'node:util';
-import { Lexer } from '../lexer/lexer.mjs';
-import { TokenType } from '../token/token.mjs';
+import { Lexer } from '../lexer/lexer';
+import { TokenType } from '../token/token';
 
 /** Command line prompt string */
 const PROMPT = '>> ';

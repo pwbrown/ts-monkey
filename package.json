@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "description": "Monkey interpreter/compiler/vm",
   "main": "app/main.js",
-  "type": "module",
   "scripts": {
     "clean": "rimraf app",
     "build": "npm run clean && tsc",
-    "start": "npm run build && node app/main.mjs",
+    "start": "npm run build && node app/main.js",
     "test": "jest"
   },
   "author": "Philip Brown",

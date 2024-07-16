@@ -1,5 +1,5 @@
 import { userInfo } from 'node:os';
-import { start } from './repl/repl.mjs';
+import { start } from './repl/repl';
 
 const main = async () => {
   const user = userInfo().username;

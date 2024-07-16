@@ -1,4 +1,4 @@
-import { Token, TokenType, lookupIdent } from '../token/token.mjs';
+import { Token, TokenType, lookupIdent } from '../token/token';
 
 /**
  * Lexer

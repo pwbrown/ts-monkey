@@ -1,5 +1,5 @@
-import { Lexer } from './lexer.mjs';
-import { TokenType } from '../token/token.mjs';
+import { Lexer } from './lexer';
+import { TokenType } from '../token/token';
 
 describe('Lexer', () => {
   it('should read the next character', () => {
