@@ -48,6 +48,22 @@ export class LetStatement implements Statement {
   }
 }
 
+/** Return Statement */
+export class ReturnStatement implements Statement {
+  constructor(
+    public token: Token,
+    public returnValue: Expression,
+  ) {}
+  
+  statementNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+}
+
 /** Identifier Expression */
 export class Identifier implements Expression {
   constructor(

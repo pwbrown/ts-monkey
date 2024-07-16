@@ -1,6 +1,6 @@
 import { Token, TokenType } from '../token/token';
 import { Lexer } from '../lexer/lexer';
-import { Identifier, LetStatement, Program, Statement } from '../ast/ast';
+import { Identifier, LetStatement, Program, ReturnStatement, Statement } from '../ast/ast';
 
 /**
  * Parser
@@ -47,6 +47,8 @@ export class Parser {
     switch(this.curToken.type) {
       case TokenType.LET:
         return this.parseLetStatement();
+      case TokenType.RETURN:
+        return this.parseReturnStatement();
       default:
         return null;
     }
@@ -72,6 +74,20 @@ export class Parser {
     }
 
     return new LetStatement(token, name, { expressionNode: () => '', tokenLiteral: () => '' });
+  }
+
+  /** Parse a return statement */
+  private parseReturnStatement(): ReturnStatement | null {
+    const token = this.curToken;
+
+    this.nextToken();
+
+    // Skip expression for now
+    while (!this.curTokenIs(TokenType.SEMICOLON)) {
+      this.nextToken();
+    }
+
+    return new ReturnStatement(token, { expressionNode: () => '', tokenLiteral: () => '' });
   }
 
   /** Checks if the current token is of a specific type */
