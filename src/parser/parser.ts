@@ -10,11 +10,12 @@ import {
   ExpressionStatement,
   IntegerLiteral,
   PrefixExpression,
+  InfixExpression,
 } from '../ast/ast';
 
 /** Parser Functions */
 type PrefixParseFn = () => Expression | null;
-type InfixParseFn = (exp: Expression) => Expression | null;
+type InfixParseFn = (exp: Expression | null) => Expression | null;
 
 /** Precedence for Pratt Parser */
 enum Precedence {
@@ -26,6 +27,18 @@ enum Precedence {
   PREFIX,
   CALL,
 }
+
+/** Mapping of tokens to their corresponding precedence */
+const TOKEN_PRECEDENCE: { [type in TokenType]?: Precedence } = {
+  [TokenType.EQ]: Precedence.EQUALS,
+  [TokenType.NE]: Precedence.EQUALS,
+  [TokenType.LT]: Precedence.LESSGREATER,
+  [TokenType.GT]: Precedence.LESSGREATER,
+  [TokenType.PLUS]: Precedence.SUM,
+  [TokenType.MINUS]: Precedence.SUM,
+  [TokenType.SLASH]: Precedence.PRODUCT,
+  [TokenType.ASTERISK]: Precedence.PRODUCT,
+};
 
 /**
  * Parser
@@ -49,11 +62,21 @@ export class Parser {
     this.nextToken();
     this.nextToken();
 
-    /** Register parser functions */
+    /** Register prefix parser functions */
     this.registerPrefix(TokenType.IDENT, this.parseIdentifier.bind(this));
     this.registerPrefix(TokenType.INT, this.parseIntegerLiteral.bind(this));
     this.registerPrefix(TokenType.MINUS, this.parsePrefixExpression.bind(this));
     this.registerPrefix(TokenType.BANG, this.parsePrefixExpression.bind(this));
+
+    /** Register infix parser functions */
+    this.registerInfix(TokenType.PLUS, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.MINUS, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.SLASH, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.ASTERISK, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.EQ, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.NE, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.LT, this.parseInfixExpression.bind(this));
+    this.registerInfix(TokenType.GT, this.parseInfixExpression.bind(this));
   }
 
   /** Fully parses the lexer into a program */
@@ -144,7 +167,18 @@ export class Parser {
       this.noPrefixParseFnError(this.curToken.type);
       return null;
     }
-    const leftExp = prefix();
+
+    let leftExp = prefix();
+
+    while (!this.peekTokenIs(TokenType.SEMICOLON) && precedence < this.peekPrecedence()) {
+      const infix = this.infixParseFns[this.peekToken.type];
+      if (!infix) {
+        return leftExp;
+      }
+      this.nextToken();
+      
+      leftExp = infix(leftExp);
+    }
 
     return leftExp;
   }
@@ -179,6 +213,17 @@ export class Parser {
     const right = this.parseExpression(Precedence.PREFIX);
 
     return new PrefixExpression(token, operator, right);
+  }
+
+  /** Parse infix expression */
+  private parseInfixExpression(left: Expression | null): InfixExpression {
+    const token = this.curToken;
+    const operator = this.curToken.literal;
+    const precedence = this.curPrecedence();
+    this.nextToken();
+    const right = this.parseExpression(precedence);
+
+    return new InfixExpression(token, left, operator, right);
   }
 
   /** Checks if the current token is of a specific type */
@@ -216,6 +261,16 @@ export class Parser {
   private nextToken() {
     this.curToken = this.peekToken;
     this.peekToken = this.lex.nextToken();
+  }
+
+  /** Get precedence of the next token */
+  private peekPrecedence(): Precedence {
+    return TOKEN_PRECEDENCE[this.peekToken.type] || Precedence.LOWEST;
+  }
+
+  /** Get precedence of the current token */
+  private curPrecedence(): Precedence {
+    return TOKEN_PRECEDENCE[this.curToken.type] || Precedence.LOWEST;
   }
 
   /** Register a prefix parser function to the prefix map */

@@ -1,6 +1,6 @@
 import { Parser } from './parser';
 import { Lexer } from '../lexer/lexer';
-import { Expression, ExpressionStatement, Identifier, IntegerLiteral, LetStatement, PrefixExpression, ReturnStatement, Statement } from '../ast/ast';
+import { Expression, ExpressionStatement, Identifier, InfixExpression, IntegerLiteral, LetStatement, PrefixExpression, ReturnStatement, Statement } from '../ast/ast';
 
 describe('Parser', () => {
   it('should parse let statements', () => {
@@ -121,6 +121,155 @@ describe('Parser', () => {
           testIntegerLiteral(expression.right, value);
         }
       }
+    }
+  });
+
+  it('should parse infix expressions', () => {
+    const tests: [input: string, left: number, operator: string, right: number][] = [
+      ['5 + 5;', 5, '+', 5],
+      ['5 - 5;', 5, '-', 5],
+      ['5 * 5;', 5, '*', 5],
+      ['5 / 5;', 5, '/', 5],
+      ['5 > 5;', 5, '>', 5],
+      ['5 < 5;', 5, '<', 5],
+      ['5 == 5;', 5, '==', 5],
+      ['5 != 5;', 5, '!=', 5],
+    ];
+
+    for (const [input, left, operator, right] of tests) {
+      const lexer = Lexer.new(input);
+      const parser = Parser.new(lexer);
+  
+      const program = parser.parseProgram();
+      checkParserErrors(parser);
+      expect(program).toBeDefined();
+      expect(program.statements).toHaveLength(1);
+  
+      const statement = program.statements[0];
+      expect(statement).toBeInstanceOf(ExpressionStatement);
+      if (statement instanceof ExpressionStatement) {
+        const expression = statement.expression;
+        expect(expression).toBeInstanceOf(InfixExpression);
+        if (expression instanceof InfixExpression) {
+          testIntegerLiteral(expression.left, left);
+          expect(expression.operator).toBe(operator);
+          testIntegerLiteral(expression.right, right);
+        }
+      }
+    }
+  });
+
+  it('should correctly handle operator precedence parsing', () => {
+    const tests: [input: string, expected: string][] = [
+      [
+        "-a * b",
+        "((-a) * b)",
+      ],
+      [
+        "!-a",
+        "(!(-a))",
+      ],
+      [
+        "a + b + c",
+        "((a + b) + c)",
+      ],
+      [
+        "a + b - c",
+        "((a + b) - c)",
+      ],
+      [
+        "a * b * c",
+        "((a * b) * c)",
+      ],
+      [
+        "a * b / c",
+        "((a * b) / c)",
+      ],
+      [
+        "a + b / c",
+        "(a + (b / c))",
+      ],
+      [
+        "a + b * c + d / e - f",
+        "(((a + (b * c)) + (d / e)) - f)",
+      ],
+      [
+        "3 + 4; -5 * 5",
+        "(3 + 4)((-5) * 5)",
+      ],
+      [
+        "5 > 4 == 3 < 4",
+        "((5 > 4) == (3 < 4))",
+      ],
+      [
+        "5 < 4 != 3 > 4",
+        "((5 < 4) != (3 > 4))",
+      ],
+      [
+        "3 + 4 * 5 == 3 * 1 + 4 * 5",
+        "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+      ],
+      // [
+      //   "true",
+      //   "true",
+      // ],
+      // [
+      //   "false",
+      //   "false",
+      // ],
+      // [
+      //   "3 > 5 == false",
+      //   "((3 > 5) == false)",
+      // ],
+      // [
+      //   "3 < 5 == true",
+      //   "((3 < 5) == true)",
+      // ],
+      // [
+      //   "1 + (2 + 3) + 4",
+      //   "((1 + (2 + 3)) + 4)",
+      // ],
+      // [
+      //   "(5 + 5) * 2",
+      //   "((5 + 5) * 2)",
+      // ],
+      // [
+      //   "2 / (5 + 5)",
+      //   "(2 / (5 + 5))",
+      // ],
+      // [
+      //   "(5 + 5) * 2 * (5 + 5)",
+      //   "(((5 + 5) * 2) * (5 + 5))",
+      // ],
+      // [
+      //   "-(5 + 5)",
+      //   "(-(5 + 5))",
+      // ],
+      // [
+      //   "!(true == true)",
+      //   "(!(true == true))",
+      // ],
+      // [
+      //   "a + add(b * c) + d",
+      //   "((a + add((b * c))) + d)",
+      // ],
+      // [
+      //   "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+      //   "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+      // ],
+      // [
+      //   "add(a + b + c * d / f + g)",
+      //   "add((((a + b) + ((c * d) / f)) + g))",
+      // ],
+    ];
+  
+    for (const [input, expected] of tests) {
+      const lexer = Lexer.new(input);
+      const parser =  Parser.new(lexer);
+      const program = parser.parseProgram();
+      checkParserErrors(parser);
+  
+      expect(program.toString()).toBe(expected);
     }
   });
 });

@@ -160,8 +160,31 @@ export class PrefixExpression implements Expression {
   }
 
   toString(): string {
-    const right = this.right?.toString() || ''
+    const right = this.right?.toString() || '';
     return `(${this.operator}${right})`;
   }
+}
 
+/** Prefix expression */
+export class InfixExpression implements Expression {
+  constructor(
+    public token: Token,
+    public left: Expression | null,
+    public operator: string,
+    public right: Expression | null,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const left = this.left?.toString() || '';
+    const right = this.right?.toString() || '';
+    return `(${left} ${this.operator} ${right})`;
+  }
 }
