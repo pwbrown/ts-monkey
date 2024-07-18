@@ -103,6 +103,26 @@ export class ExpressionStatement implements Statement {
   }
 }
 
+/** Block statement */
+export class BlockStatement implements Statement {
+  constructor(
+    public token: Token,
+    public statements: Statement[] = [],
+  ) {}
+
+  statementNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+  
+  toString(): string {
+    return this.statements.map((s) => s.toString()).join('');
+  }
+}
+
 /** Identifier Expression */
 export class Identifier implements Expression {
   constructor(
@@ -186,5 +206,98 @@ export class InfixExpression implements Expression {
     const left = this.left?.toString() || '';
     const right = this.right?.toString() || '';
     return `(${left} ${this.operator} ${right})`;
+  }
+}
+
+/** Boolean literal expression */
+export class BooleanLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public value: boolean,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    return this.token.literal;
+  }
+}
+
+/** If expression */
+export class IfExpression implements Expression {
+  constructor(
+    public token: Token,
+    public condition: Expression | null,
+    public consequence: BlockStatement | null,
+    public alternative: BlockStatement | null,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const condition = this.condition?.toString() || '';
+    const consequence = this.consequence?.toString() || '';
+    const alternative = this.alternative?.toString() || '';
+    return `if ${condition} ${consequence}${alternative ? ` else ${alternative}`: ''}`;
+  }
+}
+
+/** Function literal expression */
+export class FunctionLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public parameters: Identifier[] | null,
+    public body: BlockStatement | null,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+  
+  toString(): string {
+    const parameters = this.parameters?.map((p) => p.toString()) || [];
+    const body = this.body?.toString() || '';
+
+    return `${this.token.literal}(${parameters.join(', ')}) ${body}`;
+  }
+}
+
+/** Call expression */
+export class CallExpression implements Expression {
+  constructor(
+    public token: Token,
+    public func: Expression | null,
+    public args: Expression[] | null,
+  ) {}
+  
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const func = this.func?.toString() || '';
+    const args = this.args?.map((a) => a.toString()) || [];
+
+    return `${func}(${args.join(', ')})`;
   }
 }
