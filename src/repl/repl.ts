@@ -1,6 +1,7 @@
 import { createInterface } from 'node:readline/promises';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
+import { evaluate } from '../evaluator/evaluator';
 
 /** Command line prompt string */
 const PROMPT = '>> ';
@@ -37,7 +38,10 @@ export const start = async () => {
       continue;
     }
 
-    console.log(`${program.toString()}`);
+    const evaluated = evaluate(program);
+    if (evaluated) {
+      console.log(evaluated.inspect());
+    }
   }
 }
 
