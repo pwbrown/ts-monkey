@@ -1,4 +1,4 @@
-import { BooleanObj, IntegerObj, Obj } from '../object/object';
+import { BooleanObj, ErrorObj, IntegerObj, NullObj, Obj } from '../object/object';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 import { evaluate } from './evaluator';
@@ -73,6 +73,107 @@ describe('Evaluator', () => {
       testBooleanObject(evaluated, expected);
     }
   });
+
+  it('should evaluate if else expressions', () => {
+    const tests: [input: string, expected: unknown][] = [
+      ['if (true) { 10 }', 10],
+      ['if (false) { 10 }', null],
+      ['if (1) { 10 }', 10],
+      ['if (1 < 2) { 10 }', 10],
+      ['if (1 > 2) { 10 }', null],
+      ['if (1 > 2) { 10 } else { 20 }', 20],
+      ['if (1 < 2) { 10 } else { 20 }', 10],
+    ];
+
+    for (const [input, expected] of tests) {
+      const evaluated = testEval(input);
+      if (typeof expected === 'number') {
+        testIntegerObject(evaluated, expected);
+      } else if (expected === null) {
+        testNullObject(evaluated);
+      } else {
+        throw new Error('Unsupported test method');
+      }
+    }
+  });
+
+  it('should evaluate return statements', () => {
+    const tests: [input: string, expected: number][] = [
+      ['return 10;', 10],
+      ['return 10; 9;', 10],
+      ['return 2 * 5; 9;', 10],
+      ['9; return 2 * 5; 9;', 10],
+      ['if (10 > 1) { return 10; }', 10],
+      [
+        `
+          if (10 > 1) {
+            if (10 > 1) {
+              return 10;
+            }
+            return 1;
+          }
+        `,
+        10,
+      ],
+    ];
+
+    for (const [input, expected] of tests) {
+      const evaluated = testEval(input);
+      testIntegerObject(evaluated, expected);
+    }
+  });
+
+  it('should handle errors', () => {
+    const tests: [input: string, expected: string][] = [
+      [
+        '5 + true;',
+        'type mismatch: INTEGER + BOOLEAN',
+      ],
+      [
+        '5 + true; 5;',
+        'type mismatch: INTEGER + BOOLEAN',
+      ],
+      [
+        '-true',
+        'unknown operator: -BOOLEAN',
+      ],
+      [
+        'true + false;',
+        'unknown operator: BOOLEAN + BOOLEAN',
+      ],
+      [
+        'true + false + true + false;',
+        'unknown operator: BOOLEAN + BOOLEAN',
+      ],
+      [
+        '5; true + false; 5',
+        'unknown operator: BOOLEAN + BOOLEAN',
+      ],
+      [
+        'if (10 > 1) { true + false; }',
+        'unknown operator: BOOLEAN + BOOLEAN',
+      ],
+      [
+        `
+        if (10 > 1) {
+          if (10 > 1) {
+            return true + false;
+          }
+          return 1;
+        }
+      `,
+        'unknown operator: BOOLEAN + BOOLEAN',
+      ],
+    ];
+
+    for (const [input, expected] of tests) {
+      const evaluated = testEval(input);
+      expect(evaluated).toBeInstanceOf(ErrorObj);
+      if (evaluated instanceof ErrorObj) {
+        expect(evaluated.message).toBe(expected);
+      }
+    }
+  });
 });
 
 /** Test evaluating a program and returning the object */
@@ -97,4 +198,9 @@ const testBooleanObject = (obj: Obj | null, expected: boolean) => {
   if (obj instanceof BooleanObj) {
     expect(obj.value).toBe(expected);
   }
+}
+
+/** Test null object */
+const testNullObject = (obj: Obj | null) => {
+  expect(obj).toBeInstanceOf(NullObj);
 }

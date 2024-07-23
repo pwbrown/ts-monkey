@@ -8,6 +8,8 @@ export interface Obj {
 export enum ObjType {
   INTEGER = 'INTEGER',
   BOOLEAN = 'BOOLEAN',
+  RETURN_VALUE = 'RETURN_VALUE',
+  ERROR = 'ERROR',
   NULL = 'NULL',
 }
 
@@ -34,6 +36,32 @@ export class BooleanObj implements Obj {
 
   inspect(): string {
     return this.value.toString();
+  }
+}
+
+/** Return Value Object */
+export class ReturnValueObj implements Obj {
+  constructor(public value: Obj) {}
+  
+  type(): ObjType {
+    return ObjType.RETURN_VALUE;
+  }
+
+  inspect(): string {
+    return this.value.inspect();
+  }
+}
+
+/** Error Object */
+export class ErrorObj implements Obj {
+  constructor(public message: string) {}
+
+  type(): ObjType {
+    return ObjType.ERROR;
+  }
+
+  inspect(): string {
+    return `ERROR: ${this.message}`;
   }
 }
 
