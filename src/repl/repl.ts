@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline/promises';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 import { evaluate } from '../evaluator/evaluator';
+import { Environment } from '../object/environment';
 
 /** Command line prompt string */
 const PROMPT = '>> ';
@@ -26,6 +27,7 @@ export const start = async () => {
     input: process.stdin,
     output: process.stdout,
   });
+  const env = new Environment();
 
   for(;;) {
     const input = await rl.question(PROMPT);
@@ -38,7 +40,7 @@ export const start = async () => {
       continue;
     }
 
-    const evaluated = evaluate(program);
+    const evaluated = evaluate(program, env);
     if (evaluated) {
       console.log(evaluated.inspect());
     }

@@ -2,6 +2,7 @@ import { BooleanObj, ErrorObj, IntegerObj, NullObj, Obj } from '../object/object
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 import { evaluate } from './evaluator';
+import { Environment } from '../object/environment';
 
 describe('Evaluator', () => {
   it('should evaluate integer expressions', () => {
@@ -164,6 +165,7 @@ describe('Evaluator', () => {
       `,
         'unknown operator: BOOLEAN + BOOLEAN',
       ],
+      ['foobar', 'identifier not found: foobar'],
     ];
 
     for (const [input, expected] of tests) {
@@ -174,6 +176,19 @@ describe('Evaluator', () => {
       }
     }
   });
+
+  it('should evaluate let statements', () => {
+    const tests: [input: string, expected: number][] = [
+      ['let a = 5; a;', 5],
+      ['let a = 5 * 5; a;', 25],
+      ['let a = 5; let b = a; b;', 5],
+      ['let a = 5; let b = a; let c = a + b + 5; c;', 15],
+    ];
+
+    for (const [input, expected] of tests) {
+      testIntegerObject(testEval(input), expected);
+    }
+  });
 });
 
 /** Test evaluating a program and returning the object */
@@ -181,7 +196,8 @@ const testEval = (input: string): Obj | null => {
   const lexer = Lexer.new(input);
   const parser = Parser.new(lexer);
   const program = parser.parseProgram();
-  return evaluate(program);
+  const env = new Environment();
+  return evaluate(program, env);
 }
 
 /** Test an integer object */
