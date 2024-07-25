@@ -10,12 +10,17 @@ export interface Obj {
 /** All possible object types */
 export enum ObjType {
   INTEGER = 'INTEGER',
+  STRING = 'STRING',
   BOOLEAN = 'BOOLEAN',
   FUNCTION = 'FUNCTION',
+  BUILTIN = 'BUILTIN',
   RETURN_VALUE = 'RETURN_VALUE',
   ERROR = 'ERROR',
   NULL = 'NULL',
 }
+
+/** Builtin functions */
+export type BuiltinFunction = (...args: Obj[]) => Obj;
 
 /** Integer Object */
 export class IntegerObj implements Obj {
@@ -27,6 +32,19 @@ export class IntegerObj implements Obj {
 
   inspect(): string {
     return this.value.toString();
+  }
+}
+
+/** String Object */
+export class StringObj implements Obj {
+  constructor(public value: string) {}
+
+  type(): ObjType {
+    return ObjType.STRING;
+  }
+
+  inspect(): string {
+    return this.value;
   }
 }
 
@@ -59,6 +77,19 @@ export class FunctionObj implements Obj {
     const params = this.parameters?.map((p) => p.toString()) || [];
     const body = this.body?.toString() || '';
     return `fn(${params.join(', ')}) {\n${body}\n}`;
+  }
+}
+
+/** Builtin function object */
+export class BuiltinObj implements Obj {
+  constructor(public func: BuiltinFunction) {}
+
+  type(): ObjType {
+    return ObjType.BUILTIN;
+  }
+
+  inspect(): string {
+    return "builtin function";
   }
 }
 

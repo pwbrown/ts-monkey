@@ -13,6 +13,7 @@ export enum TokenType {
   // IDENTIFIERS/LITERALS
   IDENT = 'IDENT',
   INT = 'INT',
+  STRING = 'STRING',
   
   // OPERATORS
   ASSIGN = 'ASSIGN',

@@ -24,6 +24,8 @@ describe('Lexer', () => {
       
       10 == 10;
       10 != 9;
+      "foobar"
+      "foo bar"
     `;
 
     const tests: [expectedType: TokenType, expectedLiteral: string][] = [
@@ -100,6 +102,8 @@ describe('Lexer', () => {
       [TokenType.NE, '!='],
       [TokenType.INT, '9'],
       [TokenType.SEMICOLON, ';'],
+      [TokenType.STRING, 'foobar'],
+      [TokenType.STRING, 'foo bar'],
       [TokenType.EOF, ''],
     ];
 

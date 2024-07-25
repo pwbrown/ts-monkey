@@ -5,6 +5,7 @@ import {
   IntegerObj,
   NullObj,
   Obj,
+  StringObj,
 } from '../object/object';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
@@ -32,8 +33,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      const evaluated = testEval(input);
-      testIntegerObject(evaluated, expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -61,8 +61,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      const evaluated = testEval(input);
-      testBooleanObject(evaluated, expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -77,8 +76,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      const evaluated = testEval(input);
-      testBooleanObject(evaluated, expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -94,14 +92,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      const evaluated = testEval(input);
-      if (typeof expected === 'number') {
-        testIntegerObject(evaluated, expected);
-      } else if (expected === null) {
-        testNullObject(evaluated);
-      } else {
-        throw new Error('Unsupported test method');
-      }
+      testObject(testEval(input), expected);
     }
   });
 
@@ -126,8 +117,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      const evaluated = testEval(input);
-      testIntegerObject(evaluated, expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -158,6 +148,10 @@ describe('Evaluator', () => {
         'unknown operator: BOOLEAN + BOOLEAN',
       ],
       [
+        '"Hello" - "World!"',
+        'unknown operator: STRING - STRING',
+      ],
+      [
         'if (10 > 1) { true + false; }',
         'unknown operator: BOOLEAN + BOOLEAN',
       ],
@@ -178,9 +172,7 @@ describe('Evaluator', () => {
     for (const [input, expected] of tests) {
       const evaluated = testEval(input);
       expect(evaluated).toBeInstanceOf(ErrorObj);
-      if (evaluated instanceof ErrorObj) {
-        expect(evaluated.message).toBe(expected);
-      }
+      testObject(evaluated, expected);
     }
   });
 
@@ -193,7 +185,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      testIntegerObject(testEval(input), expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -217,7 +209,7 @@ describe('Evaluator', () => {
     ];
 
     for (const [input, expected] of tests) {
-      testIntegerObject(testEval(input), expected);
+      testObject(testEval(input), expected);
     }
   });
 
@@ -236,7 +228,7 @@ describe('Evaluator', () => {
       ourFunction(20) + first + second;
     `;
 
-    testIntegerObject(testEval(input), 70);
+    testObject(testEval(input), 70);
   });
 
   it('should evaluate function closures', () => {
@@ -249,7 +241,46 @@ describe('Evaluator', () => {
       addTwo(2);
     `;
 
-    testIntegerObject(testEval(input), 4);
+    testObject(testEval(input), 4);
+  });
+
+  it('should evaluate strings', () => {
+    const input = `"hello world!"`;
+
+    testObject(testEval(input), 'hello world!');
+  });
+
+  it('should concatenate strings', () => {
+    const input = `"Hello" + " " + "World!"`;
+
+    testObject(testEval(input), 'Hello World!');
+  });
+
+  it('should evaluate builtin functions', () => {
+    const tests: [input: string, expected: unknown][] = [
+      [`len("")`, 0],
+      [`len("four")`, 4],
+      [`len("hello world")`, 11],
+      [`len(1)`, 'argument to `len` not supported, got INTEGER'],
+      [`len("one", "two")`, 'wrong number of arguments. got=2, want=1'],
+      // [`len([1, 2, 3])`, 3],
+      // [`len([])`, 0],
+      // [`puts("hello", "world!")`, null],
+      // [`first([1, 2, 3])`, 1],
+      // [`first([])`, null],
+      // [`first(1)`, 'argument to `first` must be ARRAY, got INTEGER'],
+      // [`last([1, 2, 3])`, 3],
+      // [`last([])`, null],
+      // [`last(1)`, 'argument to `last` must be ARRAY, got INTEGER'],
+      // [`rest([1, 2, 3])`, [2, 3]],
+      // [`rest([])`, null],
+      // [`push([], 1)`, [1]],
+      // [`push(1, 1)`, 'argument to `push` must be ARRAY, got INTEGER'],
+    ];
+
+    for (const [input, expected] of tests) {
+      testObject(testEval(input), expected);
+    }
   });
 });
 
@@ -270,6 +301,14 @@ const testIntegerObject = (obj: Obj | null, expected: number) => {
   }
 }
 
+/** Test a string object */
+const testStringObject = (obj: Obj | null, expected: string) => {
+  expect(obj).toBeInstanceOf(StringObj);
+  if (obj instanceof StringObj) {
+    expect(obj.value).toBe(expected);
+  }
+}
+
 /** Test a boolean object */
 const testBooleanObject = (obj: Obj | null, expected: boolean) => {
   expect(obj).toBeInstanceOf(BooleanObj);
@@ -282,6 +321,23 @@ const testBooleanObject = (obj: Obj | null, expected: boolean) => {
 const testFunctionObject = (obj: Obj | null): FunctionObj => {
   expect(obj).toBeInstanceOf(FunctionObj);
   return obj as FunctionObj;
+}
+
+/** Test an object of unknown type */
+const testObject = (obj: Obj | null, expected: unknown) => {
+  if (typeof expected === 'number') {
+    testIntegerObject(obj, expected);
+  } else if (typeof expected === 'string') {
+    if (obj instanceof ErrorObj) {
+      expect(obj.message).toBe(expected);
+    } else {
+      testStringObject(obj, expected);
+    }
+  } else if (typeof expected === 'boolean') {
+    testBooleanObject(obj, expected);
+  } else if (expected === null) {
+    testNullObject(obj);
+  }
 }
 
 /** Test null object */

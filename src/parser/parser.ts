@@ -16,6 +16,7 @@ import {
   BlockStatement,
   FunctionLiteral,
   CallExpression,
+  StringLiteral,
 } from '../ast/ast';
 
 /** Parser Functions */
@@ -78,6 +79,7 @@ export class Parser {
     this.registerPrefix(TokenType.LPAREN, this.parseGroupedExpression.bind(this));
     this.registerPrefix(TokenType.IF, this.parseIfExpression.bind(this));
     this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral.bind(this));
+    this.registerPrefix(TokenType.STRING, this.parseStringLiteral.bind(this));
 
     /** Register infix parser functions */
     this.registerInfix(TokenType.PLUS, this.parseInfixExpression.bind(this));
@@ -235,6 +237,11 @@ export class Parser {
     }
 
     return new IntegerLiteral(token, value);
+  }
+
+  /** Parse a string literal expression */
+  private parseStringLiteral(): StringLiteral | null {
+    return new StringLiteral(this.curToken, this.curToken.literal);
   }
 
   /** Parse a boolean literal */

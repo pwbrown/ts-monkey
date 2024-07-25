@@ -163,6 +163,26 @@ export class IntegerLiteral implements Expression {
   }
 }
 
+/** String literal expression */
+export class StringLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public value: string,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    return this.token.literal;
+  }
+}
+
 /** Prefix expression */
 export class PrefixExpression implements Expression {
   constructor(

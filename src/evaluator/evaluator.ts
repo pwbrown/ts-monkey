@@ -6,6 +6,8 @@ import {
   ErrorObj,
   NullObj,
   FunctionObj,
+  StringObj,
+  BuiltinObj,
 } from '../object/object';
 import {
   Program,
@@ -23,6 +25,7 @@ import {
   FunctionLiteral,
   CallExpression,
   Expression,
+  StringLiteral,
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 
@@ -32,6 +35,20 @@ export const ConstObj = {
   false: new BooleanObj(false),
   null: new NullObj(),
 }
+
+/** Builtin Functions */
+const BUILTINS: { [name: string]: BuiltinObj } = {
+  'len': new BuiltinObj((...args: Obj[]) => {
+    if (args.length !== 1) {
+      return newError(`wrong number of arguments. got=${args.length}, want=1`);
+    }
+    const arg = args[0];
+    if (arg instanceof StringObj) {
+      return new IntegerObj(arg.value.length);
+    }
+    return newError(`argument to \`len\` not supported, got ${arg.type()}`);
+  }),
+};
 
 /** Evaulates an AST Node and returns an Object representation */
 export const evaluate = (node: Node | null | undefined, env: Environment): Obj => {
@@ -65,6 +82,9 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
   }
   if (node instanceof IntegerLiteral) {
     return new IntegerObj(node.value);
+  }
+  if (node instanceof StringLiteral) {
+    return new StringObj(node.value);
   }
   if (node instanceof BooleanLiteral) {
     return boolToBooleanObj(node.value);
@@ -169,11 +189,12 @@ const evalExpressions = (exps: Expression[] | null, env: Environment): Obj[] => 
 
 /** Evaluate identifiers */
 const evalIdentifier = (identifier: Identifier, env: Environment): Obj => {
-  const stored = env.get(identifier.value);
-  if (!stored) {
-    return newError(`identifier not found: ${identifier.value}`);
-  }
-  return stored;
+  const name = identifier.value;
+  return (
+    env.get(name) ||
+    BUILTINS[name] ||
+    newError(`identifier not found: ${identifier.value}`)
+  );
 }
 
 /** Evaluate prefix expression */
@@ -217,7 +238,9 @@ const evalInfixExpression = (operator: string, left: Obj, right: Obj): Obj => {
     return newError(`type mismatch: ${left.type()} ${operator} ${right.type()}`);
   } else if (left instanceof IntegerObj && right instanceof IntegerObj) {
     return evalIntegerInfixExpression(operator, left, right);
-  } else if (operator === '==') {
+  } else if (left instanceof StringObj && right instanceof StringObj) {
+    return evalStringInfixExpression(operator, left, right);
+  }else if (operator === '==') {
     return boolToBooleanObj(left === right);
   } else if (operator === '!=') {
     return boolToBooleanObj(left !== right);
@@ -250,6 +273,14 @@ const evalIntegerInfixExpression = (operator: string, left: IntegerObj, right: I
   }
 }
 
+/** Evaluate string infix expression */
+const evalStringInfixExpression = (operator: string, left: StringObj, right: StringObj): Obj => {
+  if (operator !== '+') {
+    return newError(`unknown operator: ${left.type()} ${operator} ${right.type()}`);
+  }
+  return new StringObj(left.value + right.value);
+}
+
 /** Evaluate if expression */
 const evalIfExpression = (expression: IfExpression, env: Environment): Obj => {
   const condition = evaluate(expression.condition, env);
@@ -266,13 +297,17 @@ const evalIfExpression = (expression: IfExpression, env: Environment): Obj => {
 
 /** Apply a function with arguments */
 const applyFunction = (func: Obj, args: Obj[]): Obj => {
-  if (!(func instanceof FunctionObj)) {
-    return newError(`not a function: ${func.type()}`);
+  /** Handle stored function */
+  if (func instanceof FunctionObj) {
+    const extEnv = extendFunctionEnv(func, args);
+    const evaluated = evaluate(func.body, extEnv);
+    return unwrapReturnValue(evaluated);
   }
-
-  const extEnv = extendFunctionEnv(func, args);
-  const evaluated = evaluate(func.body, extEnv);
-  return unwrapReturnValue(evaluated);
+  /** Handle builtin function */
+  if (func instanceof BuiltinObj) {
+    return func.func(...args);
+  }
+  return newError(`not a function: ${func.type()}`);
 }
 
 /** Extend a function's environment */

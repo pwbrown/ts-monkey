@@ -15,6 +15,7 @@ import {
   PrefixExpression,
   ReturnStatement,
   Statement,
+  StringLiteral,
 } from '../ast/ast';
 
 describe('Parser', () => {
@@ -339,6 +340,14 @@ describe('Parser', () => {
       }
     }
   });
+
+  it('should parse a string literal expression', () => {
+    const input = `"hello world";`;
+    
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    testStringLiteral(statement.expression, 'hello world');
+  });
 });
 
 /** Parse input code into a program, check for errors, and check for statement count */
@@ -406,6 +415,14 @@ const testIntegerLiteral = (exp: Expression | null | undefined, value: number) =
   if (exp instanceof IntegerLiteral) {
     expect(exp.value).toBe(value);
     expect(exp.tokenLiteral()).toBe(value.toString());
+  }
+}
+
+/** Test string literal expression */
+const testStringLiteral = (exp: Expression | null | undefined, value: string) => {
+  expect(exp).toBeInstanceOf(StringLiteral);
+  if (exp instanceof StringLiteral) {
+    expect(exp.value).toBe(value);
   }
 }
 

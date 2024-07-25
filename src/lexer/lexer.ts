@@ -83,6 +83,9 @@ export class Lexer {
       case '}':
         token = newToken(TokenType.RBRACE, '}');
         break;
+      case '"':
+        token = newToken(TokenType.STRING, this.readString());
+        break;
       case '':
         token = newToken(TokenType.EOF, '');
         break;
@@ -131,6 +134,16 @@ export class Lexer {
     while (isLetter(this.char)) {
       this.readChar();
     }
+    const end = this.position;
+    return this.input.substring(start, end);
+  }
+
+  /** Read in a string value */
+  private readString() {
+    const start = this.position + 1;
+    do {
+      this.readChar();
+    } while (this.char && this.char !== '"');
     const end = this.position;
     return this.input.substring(start, end);
   }
