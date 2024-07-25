@@ -1,6 +1,7 @@
 import { Parser } from './parser';
 import { Lexer } from '../lexer/lexer';
 import { 
+  ArrayLiteral,
   BlockStatement,
   BooleanLiteral,
   CallExpression,
@@ -9,6 +10,7 @@ import {
   FunctionLiteral,
   Identifier,
   IfExpression,
+  IndexExpression,
   InfixExpression,
   IntegerLiteral,
   LetStatement,
@@ -217,6 +219,14 @@ describe('Parser', () => {
         "add(a + b + c * d / f + g)",
         "add((((a + b) + ((c * d) / f)) + g))",
       ],
+      [
+        "a * [1, 2, 3, 4][b * c] * d",
+        "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+      ],
+      [
+        "add(a * b[2], b[1], 2 * [1, 2][1])",
+        "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+      ],
     ];
   
     for (const [input, expected] of tests) {
@@ -348,6 +358,36 @@ describe('Parser', () => {
     const statement = testExpressionStatement(program.statements[0]);
     testStringLiteral(statement.expression, 'hello world');
   });
+
+  it('should parse empty array literal expressions', () => {
+    const input = `[]`;
+    
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    testArrayLiteral(statement.expression, 0);
+  });
+
+  it('should parse array literal expressions', () => {
+    const input = `[1, 2 * 2, 3 + 3]`;
+    
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const arr = testArrayLiteral(statement.expression, 3);
+    const elements = arr.elements!;
+    testIntegerLiteral(elements[0], 1);
+    testInfixExpression(elements[1], 2, '*', 2);
+    testInfixExpression(elements[2], 3, '+', 3);
+  });
+
+  it('should parse an array index expression', () => {
+    const input = `myArray[1 + 1]`;
+    
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const exp = testIndexExpression(statement.expression);
+    testIdentifier(exp.left, 'myArray');
+    testInfixExpression(exp.index, 1, '+', 1);
+  });
 });
 
 /** Parse input code into a program, check for errors, and check for statement count */
@@ -416,6 +456,21 @@ const testIntegerLiteral = (exp: Expression | null | undefined, value: number) =
     expect(exp.value).toBe(value);
     expect(exp.tokenLiteral()).toBe(value.toString());
   }
+}
+
+/** Test array literal expression */
+const testArrayLiteral = (exp: Expression | null | undefined, expectedElements?: number): ArrayLiteral => {
+  expect(exp).toBeInstanceOf(ArrayLiteral);
+  if (typeof expectedElements === 'number' && exp instanceof ArrayLiteral) {
+    expect(exp.elements || []).toHaveLength(expectedElements);
+  }
+  return exp as ArrayLiteral;
+}
+
+/** Test an array index expression */
+const testIndexExpression = (exp: Expression | null | undefined): IndexExpression => {
+  expect(exp).toBeInstanceOf(IndexExpression);
+  return exp as IndexExpression;
 }
 
 /** Test string literal expression */

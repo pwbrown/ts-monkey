@@ -34,6 +34,8 @@ export enum TokenType {
   RPAREN = 'RPAREN',
   LBRACE = 'LBRACE',
   RBRACE = 'RBRACE',
+  LBRACKET = 'LBRACKET',
+  RBRACKET = 'RBRACKET',
 
   // KEYWORDS
   FUNCTION = 'FUNCTION',

@@ -17,6 +17,8 @@ import {
   FunctionLiteral,
   CallExpression,
   StringLiteral,
+  ArrayLiteral,
+  IndexExpression,
 } from '../ast/ast';
 
 /** Parser Functions */
@@ -32,6 +34,7 @@ enum Precedence {
   PRODUCT,
   PREFIX,
   CALL,
+  INDEX,
 }
 
 /** Mapping of tokens to their corresponding precedence */
@@ -45,6 +48,7 @@ const TOKEN_PRECEDENCE: { [type in TokenType]?: Precedence } = {
   [TokenType.SLASH]: Precedence.PRODUCT,
   [TokenType.ASTERISK]: Precedence.PRODUCT,
   [TokenType.LPAREN]: Precedence.CALL,
+  [TokenType.LBRACKET]: Precedence.INDEX,
 };
 
 /**
@@ -80,6 +84,7 @@ export class Parser {
     this.registerPrefix(TokenType.IF, this.parseIfExpression.bind(this));
     this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral.bind(this));
     this.registerPrefix(TokenType.STRING, this.parseStringLiteral.bind(this));
+    this.registerPrefix(TokenType.LBRACKET, this.parseArrayLiteral.bind(this));
 
     /** Register infix parser functions */
     this.registerInfix(TokenType.PLUS, this.parseInfixExpression.bind(this));
@@ -91,6 +96,7 @@ export class Parser {
     this.registerInfix(TokenType.LT, this.parseInfixExpression.bind(this));
     this.registerInfix(TokenType.GT, this.parseInfixExpression.bind(this));
     this.registerInfix(TokenType.LPAREN, this.parseCallExpression.bind(this));
+    this.registerInfix(TokenType.LBRACKET, this.parseIndexExpression.bind(this));
   }
 
   /** Fully parses the lexer into a program */
@@ -244,6 +250,15 @@ export class Parser {
     return new StringLiteral(this.curToken, this.curToken.literal);
   }
 
+  /** Parse array literal expression */
+  private parseArrayLiteral(): ArrayLiteral | null {
+    const token = this.curToken;
+
+    const elements = this.parseExpressionList(TokenType.RBRACKET);
+
+    return new ArrayLiteral(token, elements);
+  }
+
   /** Parse a boolean literal */
   private parseBooleanLiteral(): BooleanLiteral | null {
     return new BooleanLiteral(this.curToken, this.curTokenIs(TokenType.TRUE));
@@ -270,6 +285,19 @@ export class Parser {
     const right = this.parseExpression(precedence);
 
     return new InfixExpression(token, left, operator, right);
+  }
+
+  /** Parse index expression */
+  private parseIndexExpression(left: Expression | null): IndexExpression | null {
+    const token = this.curToken;
+
+    this.nextToken();
+    const index = this.parseExpression(Precedence.LOWEST);
+    if (!this.expectPeek(TokenType.RBRACKET)) {
+      return null;
+    }
+
+    return new IndexExpression(token, left, index);
   }
 
   /** Parse grouped expression (wrapped with parenthesis) */
@@ -371,17 +399,17 @@ export class Parser {
   /** Parse call expression */
   private parseCallExpression(func: Expression | null): CallExpression | null {
     const token = this.curToken;
-    const args = this.parseCallArguments();
+    const args = this.parseExpressionList(TokenType.RPAREN);
     return new CallExpression(token, func, args);
   }
 
-  /** Parse call expression arguments */
-  private parseCallArguments(): Expression[] | null {
-    const args: Expression[] = [];
+  /** Parse comma seperated expression list */
+  private parseExpressionList(end: TokenType): Expression[] | null {
+    const expressions: Expression[] = [];
 
-    if (this.peekTokenIs(TokenType.RPAREN)) {
+    if (this.peekTokenIs(end)) {
       this.nextToken();
-      return args;
+      return expressions;
     }
 
     const expectAndPushExpression = () => {
@@ -391,7 +419,7 @@ export class Parser {
         this.errors.push('expected an expression');
         return false;
       }
-      args.push(expression);
+      expressions.push(expression);
       return true;
     }
 
@@ -406,11 +434,11 @@ export class Parser {
       }
     }
 
-    if (!this.expectPeek(TokenType.RPAREN)) {
+    if (!this.expectPeek(end)) {
       return null;
     }
 
-    return args;
+    return expressions;
   }
 
   /** Checks if the current token is of a specific type */

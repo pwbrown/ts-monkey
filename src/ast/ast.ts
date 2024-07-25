@@ -183,6 +183,49 @@ export class StringLiteral implements Expression {
   }
 }
 
+/** Array literal expression */
+export class ArrayLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public elements: Expression[] | null,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const elements = this.elements?.map((e) => e.toString()) || [];
+    return `[${elements.join(', ')}]`;
+  }
+}
+
+export class IndexExpression implements Expression {
+  constructor(
+    public token: Token,
+    public left: Expression | null,
+    public index: Expression | null,
+  ){}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const left = this.left?.toString() || '';
+    const index = this.index?.toString() || '';
+    return `(${left}[${index}])`;
+  }
+}
+
 /** Prefix expression */
 export class PrefixExpression implements Expression {
   constructor(
