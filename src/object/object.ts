@@ -1,3 +1,6 @@
+import { BlockStatement, Identifier } from '../ast/ast';
+import { Environment } from './environment';
+
 /** Represents a single object */
 export interface Obj {
   type(): ObjType;
@@ -8,6 +11,7 @@ export interface Obj {
 export enum ObjType {
   INTEGER = 'INTEGER',
   BOOLEAN = 'BOOLEAN',
+  FUNCTION = 'FUNCTION',
   RETURN_VALUE = 'RETURN_VALUE',
   ERROR = 'ERROR',
   NULL = 'NULL',
@@ -36,6 +40,25 @@ export class BooleanObj implements Obj {
 
   inspect(): string {
     return this.value.toString();
+  }
+}
+
+/** Function Object */
+export class FunctionObj implements Obj {
+  constructor(
+    public parameters: Identifier[],
+    public body: BlockStatement,
+    public env: Environment,
+  ) {}
+
+  type(): ObjType {
+    return ObjType.FUNCTION;
+  }
+
+  inspect(): string {
+    const params = this.parameters?.map((p) => p.toString()) || [];
+    const body = this.body?.toString() || '';
+    return `fn(${params.join(', ')}) {\n${body}\n}`;
   }
 }
 

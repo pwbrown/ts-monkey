@@ -5,6 +5,7 @@ import {
   ReturnValueObj,
   ErrorObj,
   NullObj,
+  FunctionObj,
 } from '../object/object';
 import {
   Program,
@@ -19,6 +20,9 @@ import {
   BooleanLiteral,
   LetStatement,
   Identifier,
+  FunctionLiteral,
+  CallExpression,
+  Expression,
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 
@@ -64,6 +68,25 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
   }
   if (node instanceof BooleanLiteral) {
     return boolToBooleanObj(node.value);
+  }
+  if (node instanceof FunctionLiteral) {
+    return new FunctionObj(
+      node.parameters || [],
+      node.body!,
+      env,
+    )
+  }
+  if (node instanceof CallExpression) {
+    const func = evaluate(node.func, env);
+    if (isError(func)) {
+      return func;
+    }
+    const args = evalExpressions(node.args, env);
+    if (args.length === 1 && isError(args[0])) {
+      return args[0];
+    }
+
+    return applyFunction(func, args);
   }
   if (node instanceof PrefixExpression) {
     const right = evaluate(node.right, env);
@@ -127,6 +150,21 @@ const evalBlockStatement = (block: BlockStatement, env: Environment): Obj => {
   }
 
   return result;
+}
+
+/** Evaluate a list of expressions */
+const evalExpressions = (exps: Expression[] | null, env: Environment): Obj[] => {
+  const results: Obj[] = [];
+
+  for (const exp of exps || []) {
+    const evaluated = evaluate(exp, env);
+    if (isError(evaluated)) {
+      return [evaluated];
+    }
+    results.push(evaluated);
+  }
+
+  return results;
 }
 
 /** Evaluate identifiers */
@@ -224,6 +262,37 @@ const evalIfExpression = (expression: IfExpression, env: Environment): Obj => {
   } else {
     return evaluate(expression.alternative, env);
   }
+}
+
+/** Apply a function with arguments */
+const applyFunction = (func: Obj, args: Obj[]): Obj => {
+  if (!(func instanceof FunctionObj)) {
+    return newError(`not a function: ${func.type()}`);
+  }
+
+  const extEnv = extendFunctionEnv(func, args);
+  const evaluated = evaluate(func.body, extEnv);
+  return unwrapReturnValue(evaluated);
+}
+
+/** Extend a function's environment */
+const extendFunctionEnv = (func: FunctionObj, args: Obj[]): Environment => {
+  const env = new Environment(func.env);
+
+  for (const [i, param] of func.parameters.entries()) {
+    env.set(param.value, args[i]);
+  }
+
+  return env;
+}
+
+/** Unwrap an object's return value if it is a return value object */
+const unwrapReturnValue = (obj: Obj): Obj => {
+  if (obj instanceof ReturnValueObj) {
+    return obj.value;
+  }
+
+  return obj;
 }
 
 /** Converts boolean value to boolean object */

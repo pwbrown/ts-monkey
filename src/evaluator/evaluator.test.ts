@@ -1,4 +1,11 @@
-import { BooleanObj, ErrorObj, IntegerObj, NullObj, Obj } from '../object/object';
+import {
+  BooleanObj,
+  ErrorObj,
+  FunctionObj,
+  IntegerObj,
+  NullObj,
+  Obj,
+} from '../object/object';
 import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 import { evaluate } from './evaluator';
@@ -189,6 +196,61 @@ describe('Evaluator', () => {
       testIntegerObject(testEval(input), expected);
     }
   });
+
+  it('should evaluate functions', () => {
+    const input = 'fn(x) { x + 2; };';
+
+    const evaluated = testEval(input);
+    const func = testFunctionObject(evaluated);
+    expect(func.parameters).toHaveLength(1);
+    expect(func.body?.toString()).toBe('(x + 2)');
+  });
+
+  it('should evaluate function applications', () => {
+    const tests: [input: string, expected: number][] = [
+      ['let identity = fn(x) { x; }; identity(5);', 5],
+      ['let identity = fn(x) { return x; }; identity(5);', 5],
+      ['let double = fn(x) { x * 2; }; double(5);', 10],
+      ['let add = fn(x, y) { x + y; }; add(5, 5);', 10],
+      ['let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));', 20],
+      ['fn(x) { x; }(5)', 5],
+    ];
+
+    for (const [input, expected] of tests) {
+      testIntegerObject(testEval(input), expected);
+    }
+  });
+
+  it('should evaluate enclosing environments', () => {
+    const input = `
+      let first = 10;
+      let second = 10;
+      let third = 10;
+
+      let ourFunction = fn(first) {
+        let second = 20;
+
+        first + second + third;
+      };
+
+      ourFunction(20) + first + second;
+    `;
+
+    testIntegerObject(testEval(input), 70);
+  });
+
+  it('should evaluate function closures', () => {
+    const input = `
+      let newAdder = fn(x) {
+        return fn(y) { x + y };
+      };
+
+      let addTwo = newAdder(2);
+      addTwo(2);
+    `;
+
+    testIntegerObject(testEval(input), 4);
+  });
 });
 
 /** Test evaluating a program and returning the object */
@@ -214,6 +276,12 @@ const testBooleanObject = (obj: Obj | null, expected: boolean) => {
   if (obj instanceof BooleanObj) {
     expect(obj.value).toBe(expected);
   }
+}
+
+/** Test a function object */
+const testFunctionObject = (obj: Obj | null): FunctionObj => {
+  expect(obj).toBeInstanceOf(FunctionObj);
+  return obj as FunctionObj;
 }
 
 /** Test null object */
