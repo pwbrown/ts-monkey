@@ -14,6 +14,7 @@ export enum ObjType {
   STRING = 'STRING',
   BOOLEAN = 'BOOLEAN',
   ARRAY = 'ARRAY',
+  HASH = 'HASH',
   FUNCTION = 'FUNCTION',
   BUILTIN = 'BUILTIN',
   RETURN_VALUE = 'RETURN_VALUE',
@@ -90,6 +91,37 @@ export class ArrayObj implements Obj {
 
   clone(): ArrayObj {
     return new ArrayObj([...this.elements.map((e) => e.clone())]);
+  }
+}
+
+/** Hash Object */
+export interface HashPair {
+  key: Obj,
+  value: Obj,
+}
+
+/** Hash Object */
+export class HashObj implements Obj {
+  constructor(public pairs: Map<string, HashPair>) {}
+
+  type(): ObjType {
+    return ObjType.HASH;
+  }
+
+  inspect(): string {
+    const pairs: string[] = [];
+    for (const { key, value } of this.pairs.values()) {
+      pairs.push(`${key.inspect()}:${value.inspect()}`);
+    }
+    return `{${pairs.join(', ')}}`;
+  }
+
+  clone(): Obj {
+    const copied = new Map<string, HashPair>();
+    for (const { key, value } of this.pairs.values()) {
+      copied.set(key.inspect(), { key: key.clone(), value: value.clone() });
+    }
+    return new HashObj(copied);
   }
 }
 

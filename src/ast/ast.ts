@@ -364,3 +364,27 @@ export class CallExpression implements Expression {
     return `${func}(${args.join(', ')})`;
   }
 }
+
+/** Hash Literal Expressions */
+export class HashLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public pairs: Map<Expression, Expression>,
+  ) {}
+  
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const pairs: string[] = [];
+    for (const [key, value] of this.pairs.entries()) {
+      pairs.push(`${key.toString()}:${value.toString()}`);
+    }
+    return `{${pairs.join(', ')}}`;
+  }
+}

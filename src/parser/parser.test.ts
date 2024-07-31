@@ -8,6 +8,7 @@ import {
   Expression,
   ExpressionStatement,
   FunctionLiteral,
+  HashLiteral,
   Identifier,
   IfExpression,
   IndexExpression,
@@ -388,6 +389,81 @@ describe('Parser', () => {
     testIdentifier(exp.left, 'myArray');
     testInfixExpression(exp.index, 1, '+', 1);
   });
+
+  it('should parse empty hash literals', () => {
+    const input = '{}';
+
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    testHashLiteral(statement.expression, 0);
+  });
+
+  it('should parse hash literals with string keys', () => {
+    const input = '{"one": 1, "two": 2, "three": 3}';
+    const expected: [key: string, value: number][] = [
+      ['one', 1],
+      ['two', 2],
+      ['three', 3],
+    ];
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const hash = testHashLiteral(statement.expression, expected.length);
+    for (const [i, [key, value]] of Array.from(hash.pairs.entries()).entries()) {
+      const [expKey, expValue] = expected[i]
+      testStringLiteral(key, expKey);
+      testIntegerLiteral(value, expValue);
+    }
+  });
+
+  it('should parse hash literals with boolean keys', () => {
+    const input = '{true: 1, false: 2}';
+    const expected: [key: boolean, value: number][] = [
+      [true, 1],
+      [false, 2],
+    ];
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const hash = testHashLiteral(statement.expression, expected.length);
+    for (const [i, [key, value]] of Array.from(hash.pairs.entries()).entries()) {
+      const [expKey, expValue] = expected[i]
+      testBooleanLiteral(key, expKey);
+      testIntegerLiteral(value, expValue);
+    }
+  });
+
+  it('should parse hash literals with integer keys', () => {
+    const input = '{1: 1, 2: 2, 3: 3}';
+    const expected: [key: number, value: number][] = [
+      [1, 1],
+      [2, 2],
+      [3, 3],
+    ];
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const hash = testHashLiteral(statement.expression, expected.length);
+    for (const [i, [key, value]] of Array.from(hash.pairs.entries()).entries()) {
+      const [expKey, expValue] = expected[i]
+      testIntegerLiteral(key, expKey);
+      testIntegerLiteral(value, expValue);
+    }
+  });
+
+  it('should parse hash literals with expressions', () => {
+    const input = '{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}';
+    const expected: [key: string, left: number, op: string, right: number][] = [
+      ['one', 0, '+', 1],
+      ['two', 10, '-', 8],
+      ['three', 15, '/', 5],
+    ];
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const hash = testHashLiteral(statement.expression, expected.length);
+    for (const [i, [key, value]] of Array.from(hash.pairs.entries()).entries()) {
+      const [expKey, expLeft, expOp, expRight] = expected[i]
+      testStringLiteral(key, expKey);
+      testInfixExpression(value, expLeft, expOp, expRight);
+    }
+  });
 });
 
 /** Parse input code into a program, check for errors, and check for statement count */
@@ -547,4 +623,13 @@ const testFunctionLiteral = (exp: Expression | null | undefined): FunctionLitera
 const testCallExpression = (exp: Expression | null | undefined): CallExpression => {
   expect(exp).toBeInstanceOf(CallExpression);
   return exp as CallExpression;
+}
+
+/** Test a hash literal expression */
+const testHashLiteral = (exp: Expression | null | undefined, expectedElements?: number): HashLiteral => {
+  expect(exp).toBeInstanceOf(HashLiteral);
+  if (typeof expectedElements === 'number' && exp instanceof HashLiteral) {
+    expect(exp.pairs.size).toBe(expectedElements);
+  }
+  return exp as HashLiteral;
 }

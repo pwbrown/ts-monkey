@@ -27,6 +27,7 @@ describe('Lexer', () => {
       "foobar"
       "foo bar"
       [1, 2];
+      {"foo": "bar"}
     `;
 
     const tests: [expectedType: TokenType, expectedLiteral: string][] = [
@@ -111,6 +112,11 @@ describe('Lexer', () => {
       [TokenType.INT, '2'],
       [TokenType.RBRACKET, ']'],
       [TokenType.SEMICOLON, ';'],
+      [TokenType.LBRACE, '{'],
+      [TokenType.STRING, 'foo'],
+      [TokenType.COLON, ':'],
+      [TokenType.STRING, 'bar'],
+      [TokenType.RBRACE, '}'],
       [TokenType.EOF, ''],
     ];
 

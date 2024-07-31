@@ -30,6 +30,7 @@ export enum TokenType {
   // DELIMITERS
   COMMA = 'COMMA',
   SEMICOLON = 'SEMICOLON',
+  COLON = 'COLON',
   LPAREN = 'LPAREN',
   RPAREN = 'RPAREN',
   LBRACE = 'LBRACE',

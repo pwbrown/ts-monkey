@@ -3,6 +3,7 @@ import {
   BooleanObj,
   ErrorObj,
   FunctionObj,
+  HashObj,
   IntegerObj,
   NullObj,
   Obj,
@@ -168,6 +169,8 @@ describe('Evaluator', () => {
         'unknown operator: BOOLEAN + BOOLEAN',
       ],
       ['foobar', 'identifier not found: foobar'],
+      ['{"name": "Monkey"}[fn(x) { x }];', 'unusable as hash key: FUNCTION'],
+      ['999[1]', 'index operator not supported: INTEGER'],
     ];
 
     for (const [input, expected] of tests) {
@@ -258,6 +261,10 @@ describe('Evaluator', () => {
   });
 
   it('should evaluate builtin functions', () => {
+    let logHits = 0;
+    const spy = jest.spyOn(console, 'log').mockImplementation(() => {
+      logHits += 1;
+    });
     const tests: [input: string, expected: unknown][] = [
       [`len("")`, 0],
       [`len("four")`, 4],
@@ -266,7 +273,7 @@ describe('Evaluator', () => {
       [`len("one", "two")`, 'wrong number of arguments. got=2, want=1'],
       [`len([1, 2, 3])`, 3],
       [`len([])`, 0],
-      // [`puts("hello", "world!")`, null],
+      [`puts("hello", "world!")`, null],
       [`first([1, 2, 3])`, 1],
       [`first([])`, null],
       [`first(1)`, 'argument to `first` must be ARRAY, got INTEGER'],
@@ -282,6 +289,9 @@ describe('Evaluator', () => {
     for (const [input, expected] of tests) {
       testObject(testEval(input), expected);
     }
+
+    expect(logHits).toBe(2);
+    spy.mockRestore();
   });
 
   it('should evaluate array literals', () => {
@@ -307,7 +317,45 @@ describe('Evaluator', () => {
     for (const [input, expected] of tests) {
       testObject(testEval(input), expected);
     }
-  })
+  });
+
+  it('should evaluate hash literals', () => {
+    const input = `
+      let two = "two";
+      {
+        "one": 10 - 9,
+        two: 1 + 1,
+        "thr" + "ee": 6 / 2,
+        4: 4,
+        true: 5,
+        false: 6
+      }
+    `;
+    testHashObject(testEval(input), {
+      'one': { key: 'one', value: 1 },
+      'two': { key: 'two', value: 2 },
+      'three': { key: 'three', value: 3 },
+      '4': { key: 4, value: 4 },
+      'true': { key: true, value: 5 },
+      'false': { key: false, value: 6 },
+    });
+  });
+
+  it('should evaluate hash index expressions', () => {
+    const tests: [input: string, expected: unknown][] = [
+      ['{"foo": 5}["foo"]', 5],
+      ['{"foo": 5}["bar"]', null],
+      ['let key = "foo"; {"foo": 5}[key]', 5],
+      ['{}["foo"]', null],
+      ['{5: 5}[5]', 5],
+      ['{true: 5}[true]', 5],
+      ['{false: 5}[false]', 5],
+    ];
+
+    for (const [input, expected] of tests) {
+      testObject(testEval(input), expected);
+    }
+  });
 });
 
 /** Test evaluating a program and returning the object */
@@ -350,13 +398,37 @@ const testFunctionObject = (obj: Obj | null): FunctionObj => {
 }
 
 /** Test an array object */
-const testArrayObject = (obj: Obj | null, expectedLength?: number): ArrayObj => {
+const testArrayObject = (obj: Obj | null, expected: unknown[]) => {
   expect(obj).toBeInstanceOf(ArrayObj);
-  if (typeof expectedLength === 'number' && obj instanceof ArrayObj) {
-    expect(obj.elements).toHaveLength(expectedLength);
+  if (obj instanceof ArrayObj) {
+    expect(obj.elements).toHaveLength(expected.length);
+    expected.forEach((exp, i) => {
+      testObject(obj.elements[i], exp);
+    });
   }
-  return obj as ArrayObj;
 };
+
+interface ExpectedHash {
+  [key: string]: {
+    key: unknown,
+    value: unknown
+  };
+}
+
+/** Test a hash object */
+const testHashObject = (obj: Obj | null, expected: ExpectedHash) => {
+  expect(obj).toBeInstanceOf(HashObj);
+  if (obj instanceof HashObj) {
+    for (const [expKey, expValue] of Object.entries(expected)) {
+      const value = obj.pairs.get(expKey);
+      expect(value).not.toBeUndefined();
+      if (value) {
+        testObject(value.key, expValue.key);
+        testObject(value.value, expValue.value);
+      }
+    }
+  }
+}
 
 /** Test an object of unknown type */
 const testObject = (obj: Obj | null, expected: unknown) => {
@@ -373,10 +445,7 @@ const testObject = (obj: Obj | null, expected: unknown) => {
   } else if (expected === null) {
     testNullObject(obj);
   } else if (Array.isArray(expected)) {
-    const arr = testArrayObject(obj, expected.length);
-    expected.forEach((exp, i) => {
-      testObject(arr.elements[i], exp);
-    });
+    testArrayObject(obj, expected);
   } else {
     throw new Error('Unsupported expected type');
   }

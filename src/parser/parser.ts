@@ -19,6 +19,7 @@ import {
   StringLiteral,
   ArrayLiteral,
   IndexExpression,
+  HashLiteral,
 } from '../ast/ast';
 
 /** Parser Functions */
@@ -85,6 +86,7 @@ export class Parser {
     this.registerPrefix(TokenType.FUNCTION, this.parseFunctionLiteral.bind(this));
     this.registerPrefix(TokenType.STRING, this.parseStringLiteral.bind(this));
     this.registerPrefix(TokenType.LBRACKET, this.parseArrayLiteral.bind(this));
+    this.registerPrefix(TokenType.LBRACE, this.parseHashLiteral.bind(this));
 
     /** Register infix parser functions */
     this.registerInfix(TokenType.PLUS, this.parseInfixExpression.bind(this));
@@ -439,6 +441,36 @@ export class Parser {
     }
 
     return expressions;
+  }
+
+  /** Parse a hash literal expression */
+  private parseHashLiteral(): HashLiteral | null {
+    const token = this.curToken;
+    const pairs = new Map<Expression, Expression>();
+
+    while (!this.peekTokenIs(TokenType.RBRACE)) {
+      this.nextToken();
+      const key = this.parseExpression(Precedence.LOWEST);
+      if (!key || !this.expectPeek(TokenType.COLON)) {
+        return null;
+      }
+      this.nextToken();
+      const value = this.parseExpression(Precedence.LOWEST);
+      if (!value) {
+        return null;
+      }
+      pairs.set(key, value);
+
+      if (!this.peekTokenIs(TokenType.RBRACE) && !this.expectPeek(TokenType.COMMA)) {
+        return null;
+      }
+    }
+
+    if (!this.expectPeek(TokenType.RBRACE)) {
+      return null;
+    }
+
+    return new HashLiteral(token, pairs);
   }
 
   /** Checks if the current token is of a specific type */

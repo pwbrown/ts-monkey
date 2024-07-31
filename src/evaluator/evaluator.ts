@@ -9,6 +9,8 @@ import {
   StringObj,
   BuiltinObj,
   ArrayObj,
+  HashPair,
+  HashObj,
 } from '../object/object';
 import {
   Program,
@@ -29,6 +31,7 @@ import {
   StringLiteral,
   ArrayLiteral,
   IndexExpression,
+  HashLiteral,
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 
@@ -101,6 +104,12 @@ const BUILTINS: { [name: string]: BuiltinObj } = {
     }
     return newError(`argument to \`push\` must be ARRAY, got ${arr.type()}`);
   }),
+  'puts': new BuiltinObj((...args: Obj[]) => {
+    for (const arg of args) {
+      console.log(arg.inspect());
+    }
+    return ConstObj.null;
+  }),
 };
 
 /** Evaulates an AST Node and returns an Object representation */
@@ -148,6 +157,9 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
       return elements[0];
     }
     return new ArrayObj(elements);
+  }
+  if (node instanceof HashLiteral) {
+    return evalHashLiteral(node, env);
   }
   if (node instanceof FunctionLiteral) {
     return new FunctionObj(
@@ -366,10 +378,37 @@ const evalIfExpression = (expression: IfExpression, env: Environment): Obj => {
   }
 }
 
-/** Evalute index expression */
+/** Evaluate hash literal expression */
+const evalHashLiteral = (expression: HashLiteral, env: Environment): Obj => {
+  const pairs = new Map<string, HashPair>();
+
+  for (const [keyNode, valueNode] of expression.pairs.entries()) {
+    const key = evaluate(keyNode, env);
+    if (isError(key)) {
+      return key;
+    }
+
+    if (!isValidHashKey(key)) {
+      return newError(`unusable as hash key: ${key.type()}`);
+    }
+
+    const value = evaluate(valueNode, env);
+    if (isError(value)) {
+      return value;
+    }
+
+    pairs.set(key.inspect(), { key, value });
+  }
+
+  return new HashObj(pairs);
+}
+
+/** Evaluate index expression */
 const evalIndexExpression = (left: Obj, index: Obj): Obj => {
   if (left instanceof ArrayObj && index instanceof IntegerObj) {
     return evalArrayIndexExpression(left as ArrayObj, index);
+  } if (left instanceof HashObj) {
+    return evalHashIndexExpression(left, index);
   } else {
     return newError(`index operator not supported: ${left.type()}`);
   }
@@ -382,6 +421,20 @@ const evalArrayIndexExpression = (arr: ArrayObj, index: IntegerObj): Obj => {
     return ConstObj.null;
   }
   return arr.elements[i];
+}
+
+/** Evaluate hash index expression */
+const evalHashIndexExpression = (hash: HashObj, index: Obj): Obj => {
+  if (!isValidHashKey(index)) {
+    return newError(`unusable as hash key: ${index.type()}`);
+  }
+
+  const pair = hash.pairs.get(index.inspect());
+  if (typeof pair === 'undefined') {
+    return ConstObj.null;
+  }
+
+  return pair.value;
 }
 
 /** Apply a function with arguments */
@@ -444,4 +497,9 @@ const getArgLengthError = (args: Obj[], length: number): ErrorObj | null => {
   } else {
     return null;
   }
+}
+
+/** Checks if an object is valid as a hash object's key */
+const isValidHashKey = (key: Obj) => {
+  return key instanceof StringObj || key instanceof BooleanObj || key instanceof IntegerObj
 }
