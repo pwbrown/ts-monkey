@@ -5,6 +5,7 @@ import { Environment } from './environment';
 export interface Obj {
   type(): ObjType;
   inspect(): string;
+  clone(): Obj;
 }
 
 /** All possible object types */
@@ -12,6 +13,7 @@ export enum ObjType {
   INTEGER = 'INTEGER',
   STRING = 'STRING',
   BOOLEAN = 'BOOLEAN',
+  ARRAY = 'ARRAY',
   FUNCTION = 'FUNCTION',
   BUILTIN = 'BUILTIN',
   RETURN_VALUE = 'RETURN_VALUE',
@@ -33,6 +35,10 @@ export class IntegerObj implements Obj {
   inspect(): string {
     return this.value.toString();
   }
+
+  clone(): IntegerObj {
+    return new IntegerObj(this.value);
+  }
 }
 
 /** String Object */
@@ -46,6 +52,10 @@ export class StringObj implements Obj {
   inspect(): string {
     return this.value;
   }
+
+  clone(): StringObj {
+    return new StringObj(this.value);
+  }
 }
 
 /** Boolean Object */
@@ -58,6 +68,28 @@ export class BooleanObj implements Obj {
 
   inspect(): string {
     return this.value.toString();
+  }
+
+  clone(): BooleanObj {
+    return new BooleanObj(this.value);
+  }
+}
+
+/** Array Object */
+export class ArrayObj implements Obj {
+  constructor(public elements: Obj[]) {}
+  
+  type(): ObjType {
+    return ObjType.ARRAY;
+  }
+
+  inspect(): string {
+    const elements = this.elements.map((e) => e.inspect());
+    return `[${elements.join(', ')}]`;
+  }
+
+  clone(): ArrayObj {
+    return new ArrayObj([...this.elements.map((e) => e.clone())]);
   }
 }
 
@@ -78,6 +110,14 @@ export class FunctionObj implements Obj {
     const body = this.body?.toString() || '';
     return `fn(${params.join(', ')}) {\n${body}\n}`;
   }
+
+  clone(): FunctionObj {
+    return new FunctionObj(
+      [...this.parameters],
+      this.body,
+      this.env,
+    );
+  }
 }
 
 /** Builtin function object */
@@ -90,6 +130,10 @@ export class BuiltinObj implements Obj {
 
   inspect(): string {
     return "builtin function";
+  }
+
+  clone(): BuiltinObj {
+    return new BuiltinObj(this.func);
   }
 }
 
@@ -104,6 +148,10 @@ export class ReturnValueObj implements Obj {
   inspect(): string {
     return this.value.inspect();
   }
+
+  clone(): ReturnValueObj {
+    return new ReturnValueObj(this.value.clone());
+  }
 }
 
 /** Error Object */
@@ -117,6 +165,10 @@ export class ErrorObj implements Obj {
   inspect(): string {
     return `ERROR: ${this.message}`;
   }
+
+  clone(): ErrorObj {
+    return new ErrorObj(this.message);
+  }
 }
 
 /** Null Object */
@@ -127,5 +179,9 @@ export class NullObj implements Obj {
 
   inspect(): string {
     return 'null';
+  }
+
+  clone(): NullObj {
+    return new NullObj();
   }
 }

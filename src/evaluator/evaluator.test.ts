@@ -1,4 +1,5 @@
 import {
+  ArrayObj,
   BooleanObj,
   ErrorObj,
   FunctionObj,
@@ -263,25 +264,50 @@ describe('Evaluator', () => {
       [`len("hello world")`, 11],
       [`len(1)`, 'argument to `len` not supported, got INTEGER'],
       [`len("one", "two")`, 'wrong number of arguments. got=2, want=1'],
-      // [`len([1, 2, 3])`, 3],
-      // [`len([])`, 0],
+      [`len([1, 2, 3])`, 3],
+      [`len([])`, 0],
       // [`puts("hello", "world!")`, null],
-      // [`first([1, 2, 3])`, 1],
-      // [`first([])`, null],
-      // [`first(1)`, 'argument to `first` must be ARRAY, got INTEGER'],
-      // [`last([1, 2, 3])`, 3],
-      // [`last([])`, null],
-      // [`last(1)`, 'argument to `last` must be ARRAY, got INTEGER'],
-      // [`rest([1, 2, 3])`, [2, 3]],
-      // [`rest([])`, null],
-      // [`push([], 1)`, [1]],
-      // [`push(1, 1)`, 'argument to `push` must be ARRAY, got INTEGER'],
+      [`first([1, 2, 3])`, 1],
+      [`first([])`, null],
+      [`first(1)`, 'argument to `first` must be ARRAY, got INTEGER'],
+      [`last([1, 2, 3])`, 3],
+      [`last([])`, null],
+      [`last(1)`, 'argument to `last` must be ARRAY, got INTEGER'],
+      [`rest([1, 2, 3])`, [2, 3]],
+      [`rest([])`, null],
+      [`push([], 1)`, [1]],
+      [`push(1, 1)`, 'argument to `push` must be ARRAY, got INTEGER'],
     ];
 
     for (const [input, expected] of tests) {
       testObject(testEval(input), expected);
     }
   });
+
+  it('should evaluate array literals', () => {
+    const input = `[1, 2 * 2, 3 + 3]`;
+
+    testObject(testEval(input), [1, 4, 6]);
+  });
+
+  it('should evaluate array index expressions', () => {
+    const tests: [input: string, expected: unknown][] = [
+      ['[1, 2, 3][0]', 1],
+      ['[1, 2, 3][1]', 2],
+      ['[1, 2, 3][2]', 3],
+      ['let i = 0; [1][i];', 1],
+      ['[1, 2, 3][1 + 1];', 3],
+      ['let myArray = [1, 2, 3]; myArray[2];', 3],
+      ['let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];', 6],
+      ['let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]', 2],
+      ['[1, 2, 3][3]', null],
+      ['[1, 2, 3][-1]', null],
+    ];
+
+    for (const [input, expected] of tests) {
+      testObject(testEval(input), expected);
+    }
+  })
 });
 
 /** Test evaluating a program and returning the object */
@@ -323,6 +349,15 @@ const testFunctionObject = (obj: Obj | null): FunctionObj => {
   return obj as FunctionObj;
 }
 
+/** Test an array object */
+const testArrayObject = (obj: Obj | null, expectedLength?: number): ArrayObj => {
+  expect(obj).toBeInstanceOf(ArrayObj);
+  if (typeof expectedLength === 'number' && obj instanceof ArrayObj) {
+    expect(obj.elements).toHaveLength(expectedLength);
+  }
+  return obj as ArrayObj;
+};
+
 /** Test an object of unknown type */
 const testObject = (obj: Obj | null, expected: unknown) => {
   if (typeof expected === 'number') {
@@ -337,6 +372,13 @@ const testObject = (obj: Obj | null, expected: unknown) => {
     testBooleanObject(obj, expected);
   } else if (expected === null) {
     testNullObject(obj);
+  } else if (Array.isArray(expected)) {
+    const arr = testArrayObject(obj, expected.length);
+    expected.forEach((exp, i) => {
+      testObject(arr.elements[i], exp);
+    });
+  } else {
+    throw new Error('Unsupported expected type');
   }
 }
 

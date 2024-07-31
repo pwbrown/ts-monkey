@@ -8,6 +8,7 @@ import {
   FunctionObj,
   StringObj,
   BuiltinObj,
+  ArrayObj,
 } from '../object/object';
 import {
   Program,
@@ -26,6 +27,8 @@ import {
   CallExpression,
   Expression,
   StringLiteral,
+  ArrayLiteral,
+  IndexExpression,
 } from '../ast/ast';
 import { Environment } from '../object/environment';
 
@@ -39,14 +42,64 @@ export const ConstObj = {
 /** Builtin Functions */
 const BUILTINS: { [name: string]: BuiltinObj } = {
   'len': new BuiltinObj((...args: Obj[]) => {
-    if (args.length !== 1) {
-      return newError(`wrong number of arguments. got=${args.length}, want=1`);
+    const argErr = getArgLengthError(args, 1);
+    if (argErr) {
+      return argErr;
     }
     const arg = args[0];
     if (arg instanceof StringObj) {
       return new IntegerObj(arg.value.length);
+    } else if (arg instanceof ArrayObj) {
+      return new IntegerObj(arg.elements.length);
     }
     return newError(`argument to \`len\` not supported, got ${arg.type()}`);
+  }),
+  'first': new BuiltinObj((...args: Obj[]) => {
+    const argErr = getArgLengthError(args, 1);
+    if (argErr) {
+      return argErr;
+    }
+    const arg = args[0];
+    if (arg instanceof ArrayObj) {
+      return arg.elements.length > 0 ? arg.elements[0] : ConstObj.null;
+    }
+    return newError(`argument to \`first\` must be ARRAY, got ${arg.type()}`);
+  }),
+  'last': new BuiltinObj((...args: Obj[]) => {
+    const argErr = getArgLengthError(args, 1);
+    if (argErr) {
+      return argErr;
+    }
+    const arg = args[0];
+    if (arg instanceof ArrayObj) {
+      return arg.elements.length > 0 ? arg.elements[arg.elements.length - 1] : ConstObj.null;
+    }
+    return newError(`argument to \`last\` must be ARRAY, got ${arg.type()}`);
+  }),
+  'rest': new BuiltinObj((...args: Obj[]) => {
+    const argErr = getArgLengthError(args, 1);
+    if (argErr) {
+      return argErr;
+    }
+    const arg = args[0];
+    if (arg instanceof ArrayObj) {
+      return arg.elements.length > 0
+        ? new ArrayObj(arg.elements.slice(1).map((e) => e.clone()))
+        : ConstObj.null;
+    }
+    return newError(`argument to \`rest\` must be ARRAY, got ${arg.type()}`);
+  }),
+  'push': new BuiltinObj((...args: Obj[]) => {
+    const argErr = getArgLengthError(args, 2);
+    if (argErr) {
+      return argErr;
+    }
+    const arr = args[0];
+    if (arr instanceof ArrayObj) {
+      const elements = [...arr.elements.map((e) => e.clone()), args[1]];
+      return new ArrayObj(elements);
+    }
+    return newError(`argument to \`push\` must be ARRAY, got ${arr.type()}`);
   }),
 };
 
@@ -89,6 +142,13 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
   if (node instanceof BooleanLiteral) {
     return boolToBooleanObj(node.value);
   }
+  if (node instanceof ArrayLiteral) {
+    const elements = evalExpressions(node.elements, env);
+    if (elements.length === 1 && isError(elements[0])) {
+      return elements[0];
+    }
+    return new ArrayObj(elements);
+  }
   if (node instanceof FunctionLiteral) {
     return new FunctionObj(
       node.parameters || [],
@@ -130,6 +190,17 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
   }
   if (node instanceof IfExpression) {
     return evalIfExpression(node, env);
+  }
+  if (node instanceof IndexExpression) {
+    const left = evaluate(node.left, env);
+    if (isError(left)) {
+      return left;
+    }
+    const index = evaluate(node.index, env);
+    if (isError(index)) {
+      return index;
+    }
+    return evalIndexExpression(left, index);
   }
 
   return ConstObj.null;
@@ -295,6 +366,24 @@ const evalIfExpression = (expression: IfExpression, env: Environment): Obj => {
   }
 }
 
+/** Evalute index expression */
+const evalIndexExpression = (left: Obj, index: Obj): Obj => {
+  if (left instanceof ArrayObj && index instanceof IntegerObj) {
+    return evalArrayIndexExpression(left as ArrayObj, index);
+  } else {
+    return newError(`index operator not supported: ${left.type()}`);
+  }
+}
+
+/** Evaluate array index expressions */
+const evalArrayIndexExpression = (arr: ArrayObj, index: IntegerObj): Obj => {
+  const i = index.value;
+  if (i < 0 || i >= arr.elements.length) {
+    return ConstObj.null;
+  }
+  return arr.elements[i];
+}
+
 /** Apply a function with arguments */
 const applyFunction = (func: Obj, args: Obj[]): Obj => {
   /** Handle stored function */
@@ -346,4 +435,13 @@ const isError = (obj: Obj) => obj instanceof ErrorObj;
 /** Generate a new error object for a message */
 const newError = (message: string) => {
   return new ErrorObj(message);
+}
+
+/** Checks if the given args are the expected length and returns an error if not */
+const getArgLengthError = (args: Obj[], length: number): ErrorObj | null => {
+  if (args.length !== length) {
+    return newError(`wrong number of arguments. got=${args.length}, want=1`);
+  } else {
+    return null;
+  }
 }
