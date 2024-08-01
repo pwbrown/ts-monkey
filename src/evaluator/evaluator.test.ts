@@ -7,6 +7,7 @@ import {
   IntegerObj,
   NullObj,
   Obj,
+  QuoteObj,
   StringObj,
 } from '../object/object';
 import { Lexer } from '../lexer/lexer';
@@ -356,6 +357,77 @@ describe('Evaluator', () => {
       testObject(testEval(input), expected);
     }
   });
+
+  it('should evaluate quote expressions', () => {
+    const tests: [input: string, expected: string][] = [
+      ['quote(5)', '5'],
+      ['quote(5 + 8)', '(5 + 8)'],
+      ['quote(foobar)', 'foobar'],
+      ['quote(foobar + barfoo)', '(foobar + barfoo)'],
+    ];
+
+    for (const [input, expected] of tests) {
+      testQuoteObject(testEval(input), expected);
+    }
+  });
+
+  it('should evaluate quote/unquote expressions', () => {
+    const tests: [input: string, expected: string][] = [
+      [
+        'quote(unquote(4))',
+        '4',
+      ],
+      [
+        'quote(unquote(4 + 4))',
+        '8',
+      ],
+      [
+        'quote(8 + unquote(4 + 4))',
+        '(8 + 8)',
+      ],
+      [
+        'quote(unquote(4 + 4) + 8)',
+        '(8 + 8)',
+      ],
+      [
+        `
+          let foobar = 8;
+          quote(foobar)
+        `,
+        'foobar',
+      ],
+      [
+        `
+          let foobar = 8;
+          quote(unquote(foobar))
+        `,
+        '8',
+      ],
+      [
+        'quote(unquote(true))',
+        'true',
+      ],
+      [
+        'quote(unquote(true == false))',
+        'false',
+      ],
+      [
+        'quote(unquote(quote(4 + 4)))',
+        '(4 + 4)',
+      ],
+      [
+        `
+          let quotedInfixExpression = quote(4 + 4);
+          quote(unquote(4 + 4) + unquote(quotedInfixExpression))
+        `,
+        '(8 + (4 + 4))',
+      ],
+    ];
+
+    for (const [input, expected] of tests) {
+      testQuoteObject(testEval(input), expected);
+    }
+  });
 });
 
 /** Test evaluating a program and returning the object */
@@ -427,6 +499,15 @@ const testHashObject = (obj: Obj | null, expected: ExpectedHash) => {
         testObject(value.value, expValue.value);
       }
     }
+  }
+}
+
+/** Test a quote object */
+const testQuoteObject = (obj: Obj | null, expected: string) => {
+  expect(obj).toBeInstanceOf(QuoteObj);
+  if (obj instanceof QuoteObj) {
+    expect(obj.node).not.toBeNull();
+    expect(obj.node!.toString()).toBe(expected);
   }
 }
 

@@ -11,6 +11,7 @@ import {
   ArrayObj,
   HashPair,
   HashObj,
+  QuoteObj,
 } from '../object/object';
 import {
   Program,
@@ -33,7 +34,9 @@ import {
   IndexExpression,
   HashLiteral,
 } from '../ast/ast';
+import { modify } from '../ast/modify';
 import { Environment } from '../object/environment';
+import { TokenType } from '../token/token';
 
 /** Objects that are constant in nature */
 export const ConstObj = {
@@ -169,6 +172,9 @@ export const evaluate = (node: Node | null | undefined, env: Environment): Obj =
     )
   }
   if (node instanceof CallExpression) {
+    if (node.func?.tokenLiteral() === 'quote') {
+      return quote(node.args ? node.args[0] : null, env);
+    }
     const func = evaluate(node.func, env);
     if (isError(func)) {
       return func;
@@ -435,6 +441,60 @@ const evalHashIndexExpression = (hash: HashObj, index: Obj): Obj => {
   }
 
   return pair.value;
+}
+
+/** Wrap an AST node in a quote object */
+const quote = (node: Node | null, env: Environment) => {
+  if (node) {
+    node = evalUnquoteCalls(node, env);
+  }
+  return new QuoteObj(node);
+}
+
+/** Evaluate unquote calls */
+const evalUnquoteCalls = (quoted: Node, env: Environment): Node | null => {
+  return modify(quoted, (node) => {
+    if (!isUnquoteCall(node)) {
+      return node;
+    }
+    
+    const call = node as CallExpression;
+    if (call.args?.length !== 1) {
+      return node;
+    }
+
+    const unquoted = evaluate(call.args[0], env);
+    return convertObjToNode(unquoted);
+  });
+}
+
+/** Convert an Object back to an AST Node (TODO: Need to add more types to the conversion) */
+const convertObjToNode = (obj: Obj): Node | null => {
+  /** Integer */
+  if (obj instanceof IntegerObj) {
+    return new IntegerLiteral(
+      { type: TokenType.INT, literal: obj.value.toString() },
+      obj.value,
+    );
+  }
+  /** Boolean */
+  else if (obj instanceof BooleanObj) {
+    return new BooleanLiteral(
+      { type: obj.value ? TokenType.TRUE : TokenType.FALSE, literal: obj.value.toString() },
+      obj.value,
+    );
+  }
+  /** Quote */
+  else if (obj instanceof QuoteObj) {
+    return obj.node;
+  }
+
+  return null;
+}
+
+/** Checks if a node is an unquote call */
+const isUnquoteCall = (node: Node) => {
+  return node instanceof CallExpression && node.func?.tokenLiteral() === 'unquote';
 }
 
 /** Apply a function with arguments */

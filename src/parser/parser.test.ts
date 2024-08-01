@@ -15,6 +15,7 @@ import {
   InfixExpression,
   IntegerLiteral,
   LetStatement,
+  MacroLiteral,
   PrefixExpression,
   ReturnStatement,
   Statement,
@@ -464,6 +465,20 @@ describe('Parser', () => {
       testInfixExpression(value, expLeft, expOp, expRight);
     }
   });
+
+  it('should parse a macro literal expression', () => {
+    const input = 'macro(x, y) { x + y; }';
+
+    const program = parseAndTestInput(input, 1);
+    const statement = testExpressionStatement(program.statements[0]);
+    const macro = testMacroLiteral(statement.expression, 2);
+    const params = macro.parameters!;
+    testLiteralExpression(params[0], 'x');
+    testLiteralExpression(params[1], 'y');
+    const body = testBlockStatement(macro.body, 1);
+    const bodyExp = testExpressionStatement(body.statements[0]);
+    testInfixExpression(bodyExp.expression, 'x', '+', 'y');
+  });
 });
 
 /** Parse input code into a program, check for errors, and check for statement count */
@@ -632,4 +647,14 @@ const testHashLiteral = (exp: Expression | null | undefined, expectedElements?: 
     expect(exp.pairs.size).toBe(expectedElements);
   }
   return exp as HashLiteral;
+}
+
+/** Test a macro literal expression */
+const testMacroLiteral = (exp: Expression | null | undefined, expectedParams?: number): MacroLiteral => {
+  expect(exp).toBeInstanceOf(MacroLiteral);
+  if (typeof expectedParams === 'number' && exp instanceof MacroLiteral) {
+    expect(exp.parameters).not.toBeNull();
+    expect(exp.parameters).toHaveLength(expectedParams);
+  }
+  return exp as MacroLiteral;
 }

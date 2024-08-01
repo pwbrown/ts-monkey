@@ -3,6 +3,7 @@ import { Lexer } from '../lexer/lexer';
 import { Parser } from '../parser/parser';
 import { evaluate } from '../evaluator/evaluator';
 import { Environment } from '../object/environment';
+import { defineMacros, expandMacros } from '../evaluator/macro-expansion';
 
 /** Command line prompt string */
 const PROMPT = '>> ';
@@ -28,6 +29,7 @@ export const start = async () => {
     output: process.stdout,
   });
   const env = new Environment();
+  const macroEnv = new Environment();
 
   for(;;) {
     const input = await rl.question(PROMPT);
@@ -40,7 +42,12 @@ export const start = async () => {
       continue;
     }
 
-    const evaluated = evaluate(program, env);
+    /** Define and expanded macros to modify the program */
+    defineMacros(program, macroEnv);
+    const expandedProgram = expandMacros(program, macroEnv);
+
+    /** Evaluate the expanded program */
+    const evaluated = evaluate(expandedProgram, env);
     if (evaluated) {
       console.log(evaluated.inspect());
     }

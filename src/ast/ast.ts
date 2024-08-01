@@ -388,3 +388,26 @@ export class HashLiteral implements Expression {
     return `{${pairs.join(', ')}}`;
   }
 }
+
+/** Macro Literal Expression */
+export class MacroLiteral implements Expression {
+  constructor(
+    public token: Token,
+    public parameters: Identifier[] | null,
+    public body: BlockStatement | null,
+  ) {}
+
+  expressionNode(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  tokenLiteral(): string {
+    return this.token.literal;
+  }
+
+  toString(): string {
+    const params = this.parameters?.map((param) => param.toString()) || [];
+    const body = this.body?.toString() || '';
+    return `${this.token.literal}(${params.join(', ')})${body}`;
+  }
+}

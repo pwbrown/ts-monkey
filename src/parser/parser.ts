@@ -20,6 +20,7 @@ import {
   ArrayLiteral,
   IndexExpression,
   HashLiteral,
+  MacroLiteral,
 } from '../ast/ast';
 
 /** Parser Functions */
@@ -87,6 +88,7 @@ export class Parser {
     this.registerPrefix(TokenType.STRING, this.parseStringLiteral.bind(this));
     this.registerPrefix(TokenType.LBRACKET, this.parseArrayLiteral.bind(this));
     this.registerPrefix(TokenType.LBRACE, this.parseHashLiteral.bind(this));
+    this.registerPrefix(TokenType.MACRO, this.parseMacroLiteral.bind(this));
 
     /** Register infix parser functions */
     this.registerInfix(TokenType.PLUS, this.parseInfixExpression.bind(this));
@@ -471,6 +473,25 @@ export class Parser {
     }
 
     return new HashLiteral(token, pairs);
+  }
+
+  /** Parse Macro Literal Expression */
+  private parseMacroLiteral(): MacroLiteral | null {
+    const token = this.curToken;
+
+    if (!this.expectPeek(TokenType.LPAREN)) {
+      return null;
+    }
+
+    const params = this.parseFunctionParameters();
+
+    if (!this.expectPeek(TokenType.LBRACE)) {
+      return null;
+    }
+
+    const body = this.parseBlockStatement();
+
+    return new MacroLiteral(token, params, body);
   }
 
   /** Checks if the current token is of a specific type */

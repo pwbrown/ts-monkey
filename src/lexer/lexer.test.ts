@@ -28,6 +28,7 @@ describe('Lexer', () => {
       "foo bar"
       [1, 2];
       {"foo": "bar"}
+      macro(x, y) { x + y; };
     `;
 
     const tests: [expectedType: TokenType, expectedLiteral: string][] = [
@@ -117,6 +118,19 @@ describe('Lexer', () => {
       [TokenType.COLON, ':'],
       [TokenType.STRING, 'bar'],
       [TokenType.RBRACE, '}'],
+      [TokenType.MACRO, 'macro'],
+      [TokenType.LPAREN, '('],
+      [TokenType.IDENT, 'x'],
+      [TokenType.COMMA, ','],
+      [TokenType.IDENT, 'y'],
+      [TokenType.RPAREN, ')'],
+      [TokenType.LBRACE, '{'],
+      [TokenType.IDENT, 'x'],
+      [TokenType.PLUS, '+'],
+      [TokenType.IDENT, 'y'],
+      [TokenType.SEMICOLON, ';'],
+      [TokenType.RBRACE, '}'],
+      [TokenType.SEMICOLON, ';'],
       [TokenType.EOF, ''],
     ];
 

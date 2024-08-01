@@ -46,6 +46,7 @@ export enum TokenType {
   IF = 'IF',
   ELSE = 'ELSE',
   RETURN = 'RETURN',
+  MACRO = 'MACRO',
 }
 
 interface Keywords {
@@ -61,6 +62,7 @@ const KEYWORDS: Keywords = {
   if: TokenType.IF,
   else: TokenType.ELSE,
   return: TokenType.RETURN,
+  macro: TokenType.MACRO,
 }
 
 /** Lookup and return the token type associated with an identifier */

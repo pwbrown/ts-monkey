@@ -1,4 +1,4 @@
-import { BlockStatement, Identifier } from '../ast/ast';
+import { BlockStatement, Identifier, Node } from '../ast/ast';
 import { Environment } from './environment';
 
 /** Represents a single object */
@@ -18,6 +18,8 @@ export enum ObjType {
   FUNCTION = 'FUNCTION',
   BUILTIN = 'BUILTIN',
   RETURN_VALUE = 'RETURN_VALUE',
+  QUOTE = 'QUOTE',
+  MACRO = 'MACRO',
   ERROR = 'ERROR',
   NULL = 'NULL',
 }
@@ -183,6 +185,50 @@ export class ReturnValueObj implements Obj {
 
   clone(): ReturnValueObj {
     return new ReturnValueObj(this.value.clone());
+  }
+}
+
+/** Quote Object */
+export class QuoteObj implements Obj {
+  constructor(public node: Node | null) {}
+
+  type(): ObjType {
+    return ObjType.QUOTE;
+  }
+
+  inspect(): string {
+    return `QUOTE(${this.node?.toString() || ''})`;
+  }
+
+  clone(): QuoteObj {
+    return new QuoteObj(this.node);
+  }
+}
+
+/** Macro Object */
+export class MacroObj implements Obj {
+  constructor(
+    public parameters: Identifier[],
+    public body: BlockStatement,
+    public env: Environment,
+  ) {}
+
+  type(): ObjType {
+    return ObjType.MACRO;
+  }
+
+  inspect(): string {
+    const params = this.parameters.map((param) => param.toString());
+    const body = this.body.toString();
+    return `macro(${params.join(', ')}) {\n${body}\n}`;
+  }
+
+  clone(): MacroObj {
+    return new MacroObj(
+      this.parameters,
+      this.body,
+      this.env,
+    );
   }
 }
 
