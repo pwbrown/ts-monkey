@@ -2,11 +2,13 @@
   "name": "ts-monkey",
   "version": "1.0.0",
   "description": "Monkey interpreter/compiler/vm",
-  "main": "app/main.js",
+  "bin": {
+    "monkey": "app/cli.js"
+  },
   "scripts": {
     "clean": "rimraf app",
     "build": "npm run clean && tsc",
-    "start": "npm run build && node app/main.js",
+    "start": "npm run build && node app/cli.js",
     "test": "jest"
   },
   "author": "Philip Brown",
@@ -22,5 +24,8 @@
     "ts-jest": "^29.2.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^7.16.0"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
   }
 }

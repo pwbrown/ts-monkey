@@ -1,0 +1,27 @@
+let add fn(x, y) {
+	x + y;
+}
+
+let sub = fn(x, y) {
+	x - y;
+}
+
+let div = fn(x, y) {
+	if (x == 0) {
+		puts("Cannot divide by zero!");
+	} else {
+		x / y;
+	}
+}
+
+let mult = fn(x, y) {
+	x * y;
+}
+
+puts(add(1, 2));
+puts(add(3, 4));
+puts(sub(4, 3));
+puts(sub(40, 20));
+puts(div(100, 2));
+puts(div(0, 2));
+puts(mult(10, 10));

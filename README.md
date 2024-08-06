@@ -7,15 +7,16 @@ This is my third time going through the wonderful book(s) written by Thorsten Ba
 ## The Plan
 
 Here is my plan in a nutshell:
-1. Scaffold the project to use modern TypeScript features with Jest as the testing framework.
-2. Build the Interpreter using the first book as close to the original implementation as I can.
-3. Add the Macro System from ["The Lost Chapter"](https://interpreterbook.com/#the-lost-chapter)
-4. Take a quick break to organize some of the code AND build a new CLI that includes the ability to pass monkey code from a file along with the standard REPL.
+1. (__*DONE*__) Scaffold the project to use modern TypeScript features with Jest as the testing framework.
+2. (__*DONE*__) Build the Interpreter using the first book as close to the original implementation as I can.
+3. (__*DONE*__) Add the Macro System from ["The Lost Chapter"](https://interpreterbook.com/#the-lost-chapter)
+4. (__*DONE*__) Take a quick break to organize some of the code AND build a new CLI that includes the ability to pass monkey code from a file along with the standard REPL.
 5. Build the Compiler using the second book as close to the original implementation as possible.
 6. Go crazy with building new features just to see if I can!!!
 
 ## Dream for Monkey v2 (aka "new features")
 
+* Support for single and multiline comments
 * Support for special characters and character escaping in strings.
 * Support for single quoted strings (like JavaScript) in addition to double quoted strings
 * Add the `for` in the classic C style increment syntax `for (;;) {}`
